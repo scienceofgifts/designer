@@ -342,7 +342,7 @@ Return strictly in the specified JSON schema.`;
 // 3. Enhance Prompt with AI
 app.post('/api/enhance-prompt', async (req, res) => {
   try {
-    const { structuredPrompt, designDna, dnaInfluence = 'Balanced', references } = req.body;
+    const { structuredPrompt, additionalComments, designDna, dnaInfluence = 'Balanced', references } = req.body;
 
     if (!structuredPrompt) {
       return res.status(400).json({ error: 'Missing structuredPrompt in request body.' });
@@ -359,6 +359,13 @@ ${structuredPrompt}
 --- STRUCTURED BRIEF END ---
 
 ${
+  additionalComments && additionalComments.trim()
+    ? `USER'S CUSTOM INSTRUCTIONS / ADDITIONAL COMMENTS (CRITICAL PRIORITY):
+"${additionalComments.trim()}"`
+    : ''
+}
+
+${
   designDna
     ? `The user has enabled their personal "Design DNA" with ${dnaInfluence} influence:
 - Overarching Philosophy: ${designDna.philosophy || 'N/A'}
@@ -371,23 +378,34 @@ ${
 
 ${
   references && references.length > 0
-    ? `Reference designs selected for inspiration (CRITICAL: Borrow principles and visual grammar only; do not copy copyrighted elements or distinct artworks directly):
-${references.map((r: any) => `- "${r.name}": Borrowing [${(r.borrowedAspects || []).join(', ')}]`).join('\n')}`
+    ? `Reference designs selected for inspiration (CRITICAL: Borrow underlying visual principles only; do not copy copyrighted elements or distinct artworks directly):
+${references
+  .map((r: any) => {
+    const borrowed = (r.borrowedAspects || []).join(', ');
+    const traits = (r.borrowedTraits || []).length > 0
+      ? `\n  * Stored Analysis Traits:\n    - ${(r.borrowedTraits || []).join('\n    - ')}`
+      : '';
+    return `- "${r.name}" (Borrowing [${borrowed}]):${traits}`;
+  })
+  .join('\n')}`
     : ''
 }
 
-YOUR MISSION:
-Synthesize this brief into an elevated, production-ready final prompt for high-end image generation.
-The enhanced prompt must:
-1. Transform raw parameter lists into vivid, coherent art direction prose with lighting, garment or surface texture (e.g., heavyweight 280gsm ring-spun combed cotton, tactile screen printed plastisol or discharge ink, crisp serigraph registration), typography treatments, and compositional balance.
-2. Emphasize craftsmanship, editorial restraint, and clean visual execution.
-3. Explicitly weave in the Design DNA rules (calibrated to the ${dnaInfluence} influence setting).
-4. Strictly honor the "Important Constraints" and "Avoid" directives.
-5. Provide a cohesive output that includes:
-   - Full master prompt ready for one-click copy and pasting into image models.
-   - A brief breakdown of artistic direction notes and negative constraints.
+CRITICAL ARCHITECTURAL RULE:
+THE OUTPUT MUST BE THE GRAPHIC ARTWORK / DESIGN ITSELF, NOT A PHYSICAL PRODUCT MOCKUP OR PHOTOGRAPH!
+- The prompt is requesting the finished isolated graphic design/artwork suitable for printing.
+- It is NOT requesting a photograph of a hoodie, T-shirt, or mug lying on a table or worn by a human model.
+- Do NOT describe human models, mannequins, people wearing clothing, folded cloth, 3D ceramic mugs on counters, studio lighting on merchandise, or lifestyle photography.
+- Describe the isolated 2D/graphic art composition directly, with ink textures (e.g., screen printed plastisol, discharge ink, crisp vector lines, woodcut grain), typography, and negative space on a clean/isolated background.
 
-Return the response strictly adhering to the JSON schema.`;
+YOUR MISSION:
+Synthesize this brief into an elevated, unified, production-ready final prompt for high-end image generation.
+The enhanced prompt must:
+1. Combine all creative parameters, user additional comments, and visual directives into ONE single, cohesive prompt ready to be pasted directly into an image generator.
+2. Emphasize craftsmanship, editorial restraint, clean visual execution, and isolated flat artwork presentation.
+3. Explicitly weave in the Design DNA rules (calibrated to the ${dnaInfluence} influence setting).
+4. Strictly honor the "Important Constraints", user's "Additional Comments", and "Avoid" directives.
+5. Provide a cohesive output adhering to the JSON schema.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',

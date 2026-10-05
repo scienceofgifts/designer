@@ -88,6 +88,7 @@ export interface PromptStudioSelections {
   customColorNotes: string;
   concepts: string[];
   subject: string;
+  additionalComments?: string;
   useDesignDna: boolean;
   dnaInfluence: 'Subtle' | 'Balanced' | 'Strong';
   references: ReferenceSelection[];

@@ -18,6 +18,7 @@ import { classifyGeminiError, ClassifiedError } from './utils/geminiErrorHandler
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { LogoMark } from './components/Logo';
 import { analyzeDesignApi, synthesizeDnaApi, enhancePromptApi } from './services/geminiClient';
+import { extractBorrowedTraits } from './utils/promptGenerator';
 
 const DEFAULT_PROMPT_SELECTIONS: PromptStudioSelections = {
   product: 'T-shirt',
@@ -33,6 +34,7 @@ const DEFAULT_PROMPT_SELECTIONS: PromptStudioSelections = {
   customColorNotes: '',
   concepts: ['Identity', 'Historical reference'],
   subject: 'Roman history',
+  additionalComments: '',
   useDesignDna: true,
   dnaInfluence: 'Balanced',
   references: [],
@@ -293,13 +295,22 @@ export default function App() {
     try {
       const data = await enhancePromptApi({
         structuredPrompt,
+        additionalComments: promptSelections.additionalComments,
         designDna: promptSelections.useDesignDna ? dna : null,
         dnaInfluence: promptSelections.dnaInfluence,
         references: promptSelections.references.map((r) => {
           const item = designs.find((d) => d.id === r.designId);
+          const aspects = r.borrowedAspects && r.borrowedAspects.length > 0
+            ? r.borrowedAspects
+            : ['Overall aesthetic'];
+          const traits = item ? extractBorrowedTraits(item, aspects) : [];
+
           return {
             name: item?.name || 'Reference',
-            borrowedAspects: r.borrowedAspects,
+            category: item?.category,
+            borrowedAspects: aspects,
+            borrowedTraits: traits,
+            analysis: item?.analysis,
           };
         }),
       });

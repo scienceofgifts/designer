@@ -107,9 +107,16 @@ export async function synthesizeDnaApi(designs: any[]): Promise<SynthesizeDnaRes
  */
 export async function enhancePromptApi(payload: {
   structuredPrompt: string;
+  additionalComments?: string;
   designDna: any | null;
   dnaInfluence?: string;
-  references?: Array<{ name: string; borrowedAspects: string[] }>;
+  references?: Array<{
+    name: string;
+    category?: string;
+    borrowedAspects: string[];
+    borrowedTraits?: string[];
+    analysis?: any;
+  }>;
 }): Promise<EnhancePromptResponse> {
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/api/enhance-prompt`;
