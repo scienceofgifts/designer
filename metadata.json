@@ -1,0 +1,6 @@
+{
+  "name": "DesignDNA Studio",
+  "description": "Personal design reference library, Design DNA extractor, and structured prompt generator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
