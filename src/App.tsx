@@ -17,6 +17,7 @@ import { normalizeImageForAnalysis } from './utils/imageNormalization';
 import { classifyGeminiError, ClassifiedError } from './utils/geminiErrorHandler';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { LogoMark } from './components/Logo';
+import { analyzeDesignApi, synthesizeDnaApi, enhancePromptApi } from './services/geminiClient';
 
 const DEFAULT_PROMPT_SELECTIONS: PromptStudioSelections = {
   product: 'T-shirt',
@@ -175,28 +176,13 @@ export default function App() {
             setAnalysisProgressMessage(`Gemini is temporarily busy · Retrying (attempt ${attempt} of ${MAX_ATTEMPTS})...`);
           }
 
-          const response = await fetch('/api/analyze-design', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              imageBase64: normalized.base64Data,
-              mimeType: normalized.mimeType,
-              name: design.name,
-              source: design.source,
-              category: design.category,
-            }),
+          const data = await analyzeDesignApi({
+            imageBase64: normalized.base64Data,
+            mimeType: normalized.mimeType,
+            name: design.name,
+            source: design.source,
+            category: design.category,
           });
-
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok || !data.success) {
-            const errorMsg = data.error || `HTTP ${response.status}: Failed to analyze image with Gemini.`;
-            const errObj = new Error(errorMsg);
-            (errObj as any).status = data.statusCode || response.status;
-            (errObj as any).geminiStatus = data.geminiStatus || (response.status === 503 ? 'UNAVAILABLE' : undefined);
-            (errObj as any).data = data;
-            (errObj as any).rawMessage = data.error;
-            throw errObj;
-          }
 
           // SUCCESS: Save new analysis and clear previous errors
           const updatedDesign: DesignItem = {
@@ -267,17 +253,7 @@ export default function App() {
 
     setIsUpdatingDna(true);
     try {
-      const response = await fetch('/api/synthesize-dna', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ designs: analyzedList }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to synthesize Design DNA.');
-      }
-
+      const data = await synthesizeDnaApi(analyzedList);
       const rawDna = data.dna;
       const formatPrinciples = (list: any[] = [], prefix: string) =>
         list.map((item, idx) => ({
@@ -315,27 +291,18 @@ export default function App() {
   const handleEnhanceWithAi = async (structuredPrompt: string) => {
     setIsEnhancingPrompt(true);
     try {
-      const response = await fetch('/api/enhance-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          structuredPrompt,
-          designDna: promptSelections.useDesignDna ? dna : null,
-          dnaInfluence: promptSelections.dnaInfluence,
-          references: promptSelections.references.map((r) => {
-            const item = designs.find((d) => d.id === r.designId);
-            return {
-              name: item?.name || 'Reference',
-              borrowedAspects: r.borrowedAspects,
-            };
-          }),
+      const data = await enhancePromptApi({
+        structuredPrompt,
+        designDna: promptSelections.useDesignDna ? dna : null,
+        dnaInfluence: promptSelections.dnaInfluence,
+        references: promptSelections.references.map((r) => {
+          const item = designs.find((d) => d.id === r.designId);
+          return {
+            name: item?.name || 'Reference',
+            borrowedAspects: r.borrowedAspects,
+          };
         }),
       });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to enhance prompt with AI.');
-      }
 
       showNotification('Prompt enhanced with AI art direction.');
       return data.result;

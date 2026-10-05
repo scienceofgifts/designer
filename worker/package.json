@@ -1,0 +1,18 @@
+{
+  "name": "designdna-api-worker",
+  "version": "1.0.0",
+  "description": "Secure Cloudflare Worker API proxy for DesignDNA Studio",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "secret": "wrangler secret put GEMINI_API_KEY"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240923.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.5.4",
+    "wrangler": "^3.78.0"
+  },
+  "private": true
+}
