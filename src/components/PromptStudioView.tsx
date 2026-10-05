@@ -250,6 +250,7 @@ export const PromptStudioView: React.FC<PromptStudioViewProps> = ({
   const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   // Toggle helper supporting "Unspecified" handling
   const toggleArrayItem = (field: keyof PromptStudioSelections, item: string) => {
@@ -317,11 +318,23 @@ export const PromptStudioView: React.FC<PromptStudioViewProps> = ({
   const unifiedFinalPrompt = useMemo(() => {
     if (!lastResult) return '';
     if (lastResult.enhancedResult) {
-      let prompt = lastResult.enhancedResult.enhancedPrompt;
-      if (lastResult.enhancedResult.negativeGuidance && !prompt.includes('--no')) {
-        prompt += `\n\n--no ${lastResult.enhancedResult.negativeGuidance}`;
+      const enhanced = lastResult.enhancedResult;
+      const parts: string[] = [];
+
+      if (enhanced.enhancedPrompt) {
+        parts.push(enhanced.enhancedPrompt.trim());
       }
-      return prompt;
+
+      if (enhanced.executionNotes && !enhanced.enhancedPrompt.includes(enhanced.executionNotes.trim())) {
+        parts.push(`Execution & Print Notes: ${enhanced.executionNotes.trim()}`);
+      }
+
+      if (enhanced.negativeGuidance && !enhanced.enhancedPrompt.includes('--no')) {
+        const neg = enhanced.negativeGuidance.trim();
+        parts.push(neg.startsWith('--no') ? neg : `--no ${neg}`);
+      }
+
+      return parts.join('\n\n');
     }
     return lastResult.deterministicPrompt || '';
   }, [lastResult]);
@@ -1163,21 +1176,21 @@ export const PromptStudioView: React.FC<PromptStudioViewProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Artifact Output & Enhancement Panel (5 cols, sticky - Level 3 Elevated Surface) */}
+        {/* Right Column: FINAL IMAGE GENERATION PROMPT (5 cols, sticky - Level 3 Elevated Surface) */}
         <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-4">
           <div className="bg-white rounded-xl border-2 border-[#CBD5E1] p-6 sm:p-7 shadow-md ring-1 ring-slate-900/5 space-y-5">
             {/* Output Header */}
             <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3.5">
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#2563EB]">
-                  UNIFIED PROMPT OUTPUT
+                  PROMPT STUDIO
                 </span>
                 <h3 className="font-serif-heading font-normal text-xl text-[#0F172A]">
-                  Generated Creative Brief
+                  Final Image Generation Prompt
                 </h3>
                 {lastResult && (
                   <span className="text-[11px] font-mono text-[#64748B] block mt-0.5 font-medium">
-                    {wordCount.toLocaleString()} words · {charCount.toLocaleString()} chars · Ready to paste directly
+                    {wordCount.toLocaleString()} words · {charCount.toLocaleString()} chars · Ready to copy
                   </span>
                 )}
               </div>
@@ -1189,48 +1202,24 @@ export const PromptStudioView: React.FC<PromptStudioViewProps> = ({
               )}
             </div>
 
-            {/* Primary Copy Button: Prominent One-Click Copy */}
-            {lastResult ? (
-              <button
-                type="button"
-                onClick={handleCopyPrompt}
-                className={`w-full py-3 px-4 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                  copied
-                    ? 'bg-[#0D9488] text-white ring-2 ring-[#99F6E4]'
-                    : 'bg-[#0F172A] hover:bg-[#1E293B] text-white hover:shadow-md active:scale-[0.99]'
-                }`}
-                title="Copy unified final prompt to clipboard"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4 stroke-[2.5]" />
-                    <span>COPIED FINAL PROMPT TO CLIPBOARD</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 stroke-[2.25] text-[#38BDF8]" />
-                    <span>COPY FINAL PROMPT</span>
-                  </>
-                )}
-              </button>
-            ) : null}
-
             {/* Action Bar */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
+                type="button"
                 onClick={handleGeneratePrompt}
                 className="py-2.5 px-3.5 bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-                title="Compile deterministic design brief client-side"
+                title="Compile complete deterministic design prompt client-side"
               >
                 <Wand2 className="w-3.5 h-3.5 text-[#38BDF8]" />
                 <span>Generate Prompt</span>
               </button>
 
               <button
+                type="button"
                 onClick={handleEnhance}
                 disabled={isEnhancing}
                 className="py-2.5 px-3.5 bg-white hover:bg-[#F8FAFC] border border-[#CBD5E1] text-[#0F172A] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
-                title="Elevate structured brief into a production-ready master prompt using Gemini"
+                title="Elevate prompt with AI art direction using Gemini"
               >
                 {isEnhancing ? (
                   <>
@@ -1252,7 +1241,7 @@ export const PromptStudioView: React.FC<PromptStudioViewProps> = ({
               </div>
             )}
 
-            {/* Output Display Area */}
+            {/* Output Display Area: ONE Single Complete Canonical Final Prompt Window */}
             {!lastResult ? (
               <div className="p-8 border-2 border-dashed border-[#CBD5E1] rounded-xl text-center bg-[#F8FAFC] space-y-3">
                 <div className="w-12 h-12 rounded-xl bg-white border border-[#CBD5E1] flex items-center justify-center text-[#2563EB] mx-auto shadow-2xs">
@@ -1262,112 +1251,140 @@ export const PromptStudioView: React.FC<PromptStudioViewProps> = ({
                   Creative Control Surface Ready
                 </p>
                 <p className="text-xs text-[#475569] max-w-xs mx-auto leading-relaxed">
-                  Configure creative parameters on the left and click <strong>Generate Prompt</strong> to compile your unified design artwork prompt.
+                  Configure creative parameters on the left and click <strong>Generate Prompt</strong> to compile your complete, single-window image generation prompt.
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {/* 1. Primary AI Master Prompt Display Box */}
+              <div className="space-y-3.5">
+                {/* 1. The Single Complete Final Image Generation Prompt Window */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono font-bold text-[#0F172A] uppercase tracking-[0.2em] flex items-center gap-1.5">
                       {lastResult.enhancedResult ? (
                         <>
                           <Sparkles className="w-3 h-3 text-[#D97706]" />
-                          <span>AI Master Prompt</span>
+                          <span>FINAL IMAGE GENERATION PROMPT (AI ENHANCED)</span>
                         </>
                       ) : (
-                        <span>Unified Final Prompt</span>
+                        <span>FINAL IMAGE GENERATION PROMPT</span>
                       )}
                     </span>
-                    <button
-                      onClick={handleCopyPrompt}
-                      className="text-[11px] font-mono text-[#2563EB] hover:text-[#1D4ED8] font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      {copied ? <Check className="w-3 h-3 text-[#0D9488]" /> : <Copy className="w-3 h-3" />}
-                      <span>{copied ? 'Copied' : 'Quick Copy'}</span>
-                    </button>
+                    <span className="text-[10px] font-mono text-[#64748B]">
+                      {lastResult.enhancedResult ? 'AI Optimized' : 'Deterministic'}
+                    </span>
                   </div>
 
-                  <div className="p-4 bg-[#0F172A] text-white rounded-xl font-mono text-xs leading-relaxed max-h-80 overflow-y-auto select-all whitespace-pre-wrap shadow-inner border border-slate-800">
+                  <div className="p-4 bg-[#0F172A] text-white rounded-xl font-mono text-xs leading-relaxed min-h-[18rem] max-h-[30rem] overflow-y-auto select-all whitespace-pre-wrap shadow-inner border border-slate-800">
                     {unifiedFinalPrompt}
                   </div>
                 </div>
 
-                {/* 2. Structured Brief Component Breakdown */}
-                <div className="pt-2 border-t border-[#E2E8F0] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#64748B]">
-                      Structured Brief Breakdown
-                    </span>
-                    <span className="text-[10px] font-mono text-[#64748B]">
-                      {lastResult.enhancedResult ? 'AI Enhanced' : 'Deterministic'}
-                    </span>
-                  </div>
+                {/* 2. Primary Prominent COPY FINAL PROMPT Button */}
+                <button
+                  type="button"
+                  onClick={handleCopyPrompt}
+                  className={`w-full py-3.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
+                    copied
+                      ? 'bg-[#0D9488] text-white ring-2 ring-[#99F6E4]'
+                      : 'bg-[#0F172A] hover:bg-[#1E293B] text-white hover:shadow-md active:scale-[0.99]'
+                  }`}
+                  title="Copy the complete final image generation prompt to clipboard"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 stroke-[2.5]" />
+                      <span>COPIED FINAL PROMPT TO CLIPBOARD</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 stroke-[2.25] text-[#38BDF8]" />
+                      <span>COPY FINAL PROMPT</span>
+                    </>
+                  )}
+                </button>
 
-                  {/* AI Artistic Direction (if enhanced) */}
-                  {lastResult.enhancedResult?.artisticDirection && (
-                    <div className="p-3.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl space-y-1 shadow-2xs">
-                      <span className="text-[10px] font-mono font-bold text-[#D97706] uppercase tracking-[0.2em] block">
-                        Artistic Direction
-                      </span>
-                      <p className="text-xs text-[#0F172A] font-serif-heading italic leading-relaxed">
-                        "{lastResult.enhancedResult.artisticDirection}"
-                      </p>
+                {/* 3. Optional Secondary Structured Breakdown (Collapsed by default) */}
+                <div className="pt-2 border-t border-[#E2E8F0]">
+                  <button
+                    type="button"
+                    onClick={() => setShowBreakdown((prev) => !prev)}
+                    className="w-full flex items-center justify-between text-xs font-medium text-[#64748B] hover:text-[#0F172A] py-1.5 cursor-pointer transition-colors"
+                  >
+                    <span className="font-mono text-[11px] uppercase tracking-wider font-semibold">
+                      {showBreakdown ? '▼ Hide Structured Breakdown' : '▶ Show Structured Breakdown'}
+                    </span>
+                    <span className="text-[10px] font-mono text-[#94A3B8]">
+                      {showBreakdown ? 'Collapse' : 'Inspect Components'}
+                    </span>
+                  </button>
+
+                  {showBreakdown && (
+                    <div className="mt-3 space-y-3 pt-2 border-t border-[#F1F5F9] animate-in fade-in duration-150">
+                      {/* AI Artistic Direction (if enhanced) */}
+                      {lastResult.enhancedResult?.artisticDirection && (
+                        <div className="p-3.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-xl space-y-1 shadow-2xs">
+                          <span className="text-[10px] font-mono font-bold text-[#D97706] uppercase tracking-[0.2em] block">
+                            Artistic Direction
+                          </span>
+                          <p className="text-xs text-[#0F172A] font-serif-heading italic leading-relaxed">
+                            "{lastResult.enhancedResult.artisticDirection}"
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Negative Directives & Execution Notes (if enhanced) */}
+                      {lastResult.enhancedResult && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                          <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs space-y-1">
+                            <span className="text-[10px] font-mono text-[#DC2626] font-bold block uppercase tracking-wider">
+                              Negative Directives
+                            </span>
+                            <p className="text-[11px] text-[#475569] leading-snug">
+                              {lastResult.enhancedResult.negativeGuidance}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs space-y-1">
+                            <span className="text-[10px] font-mono text-[#0F172A] font-bold block uppercase tracking-wider">
+                              Execution Notes
+                            </span>
+                            <p className="text-[11px] text-[#475569] leading-snug">
+                              {lastResult.enhancedResult.executionNotes}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Artwork-Only Notice Box */}
+                      <div className="p-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl flex items-start gap-2.5 text-xs text-[#166534]">
+                        <Check className="w-4 h-4 text-[#15803D] shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <span className="font-semibold block text-[#14532D]">Isolated Graphic Artwork Guaranteed</span>
+                          <p className="text-[11px] text-[#166534] leading-relaxed">
+                            The prompt explicitly commands flat graphic design generation for <strong>{selections.product}</strong> printing—never a product mockup or mannequin photograph.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Active Rules Summary Row */}
+                      {activeRulesList.length > 0 && (
+                        <div className="pt-2 space-y-1.5">
+                          <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#64748B] block">
+                            Active Rules
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {activeRulesList.map((rule, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2.5 py-1 text-[10px] font-mono bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] rounded-md font-medium shadow-2xs"
+                              >
+                                {rule}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
-
-                  {/* Negative Directives & Execution Notes (if enhanced) */}
-                  {lastResult.enhancedResult && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                      <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs space-y-1">
-                        <span className="text-[10px] font-mono text-[#DC2626] font-bold block uppercase tracking-wider">
-                          Negative Directives
-                        </span>
-                        <p className="text-[11px] text-[#475569] leading-snug">
-                          {lastResult.enhancedResult.negativeGuidance}
-                        </p>
-                      </div>
-                      <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs space-y-1">
-                        <span className="text-[10px] font-mono text-[#0F172A] font-bold block uppercase tracking-wider">
-                          Execution Notes
-                        </span>
-                        <p className="text-[11px] text-[#475569] leading-snug">
-                          {lastResult.enhancedResult.executionNotes}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Artwork-Only Notice Box */}
-                  <div className="p-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl flex items-start gap-2.5 text-xs text-[#166534]">
-                    <Check className="w-4 h-4 text-[#15803D] shrink-0 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <span className="font-semibold block text-[#14532D]">Isolated Graphic Artwork Guaranteed</span>
-                      <p className="text-[11px] text-[#166534] leading-relaxed">
-                        The assembled prompt explicitly commands direct flat graphic design generation for <strong>{selections.product}</strong> printing—never a product mockup or mannequin photograph.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Section: Active Rules Summary Row */}
-            {activeRulesList.length > 0 && (
-              <div className="pt-3.5 border-t border-[#E2E8F0] space-y-2">
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#64748B] block">
-                  Active Rules
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {activeRulesList.map((rule, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 text-[10px] font-mono bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] rounded-md font-medium shadow-2xs"
-                    >
-                      {rule}
-                    </span>
-                  ))}
                 </div>
               </div>
             )}

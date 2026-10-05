@@ -106,3 +106,36 @@ export interface GeneratedPromptResult {
   enhancedResult?: EnhancedPromptOutput;
   generatedAt: string;
 }
+
+export interface BackupPayload {
+  format: 'designdna-backup';
+  version: 1;
+  app: 'DesignDNA Studio';
+  exportedAt: string;
+  designs: DesignItem[];
+  designDna: DesignDna | null;
+  promptSelections?: PromptStudioSelections | null;
+  lastPromptResult?: GeneratedPromptResult | null;
+}
+
+export type BackupImportMode = 'merge' | 'replace';
+
+export interface BackupValidationResult {
+  isValid: boolean;
+  error?: string;
+  payload?: BackupPayload;
+  designsCount?: number;
+  analyzedCount?: number;
+  hasDesignDna?: boolean;
+  exportedAt?: string;
+}
+
+export interface BackupImportSummary {
+  mode: BackupImportMode;
+  totalInBackup: number;
+  addedCount: number;
+  updatedCount: number;
+  preservedCount: number;
+  totalFinalCount: number;
+  dnaRestored: boolean;
+}

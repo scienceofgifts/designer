@@ -1,5 +1,5 @@
 import React from 'react';
-import { Images, Dna, Wand2, Plus } from 'lucide-react';
+import { Images, Dna, Wand2, Plus, Database } from 'lucide-react';
 import { ThemeSelector } from './ThemeSelector';
 import { Logo } from './Logo';
 
@@ -9,6 +9,7 @@ interface TopNavProps {
   activeTab: ActiveTab;
   onSelectTab: (tab: ActiveTab) => void;
   onOpenUpload: () => void;
+  onOpenBackup: () => void;
   analyzedCount: number;
   totalCount: number;
 }
@@ -17,6 +18,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   activeTab,
   onSelectTab,
   onOpenUpload,
+  onOpenBackup,
   analyzedCount,
   totalCount,
 }) => {
@@ -92,8 +94,16 @@ export const TopNav: React.FC<TopNavProps> = ({
         </nav>
 
         {/* Right: Utility & Primary Action */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <ThemeSelector />
+          <button
+            onClick={onOpenBackup}
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--surface-primary)] hover:bg-[var(--surface-secondary)] border border-[var(--border-strong)] rounded-lg transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
+            title="Local Data & Backup (Export / Import)"
+          >
+            <Database className="w-3.5 h-3.5 text-[#2563EB]" />
+            <span className="hidden md:inline">Backup</span>
+          </button>
           <button
             onClick={onOpenUpload}
             className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-semibold text-[var(--btn-primary-text)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] rounded-lg transition-all whitespace-nowrap shadow-xs hover:shadow cursor-pointer"

@@ -8,11 +8,18 @@ import { TopNav, ActiveTab } from './components/TopNav';
 import { LibraryView } from './components/LibraryView';
 import { DesignDetailModal } from './components/DesignDetailModal';
 import { UploadModal } from './components/UploadModal';
+import { BackupModal } from './components/BackupModal';
 import { DesignDnaView } from './components/DesignDnaView';
 import { PromptStudioView } from './components/PromptStudioView';
 import { storage } from './services/storage';
 import { INITIAL_DESIGNS, INITIAL_DESIGN_DNA } from './utils/sampleData';
-import { DesignItem, DesignDna, PromptStudioSelections, GeneratedPromptResult } from './types';
+import {
+  DesignItem,
+  DesignDna,
+  PromptStudioSelections,
+  GeneratedPromptResult,
+  BackupImportSummary,
+} from './types';
 import { normalizeImageForAnalysis } from './utils/imageNormalization';
 import { classifyGeminiError, ClassifiedError } from './utils/geminiErrorHandler';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
@@ -50,6 +57,7 @@ export default function App() {
   // Modals & UI States
   const [selectedDesignId, setSelectedDesignId] = useState<string | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [analysisProgressMessage, setAnalysisProgressMessage] = useState<string | null>(null);
   const [isUpdatingDna, setIsUpdatingDna] = useState(false);
@@ -339,6 +347,19 @@ export default function App() {
     }
   };
 
+  // Reload state after importing/restoring backup
+  const handleRestoredBackup = async (summary: BackupImportSummary) => {
+    const loadedDesigns = await storage.getAllDesigns();
+    const loadedDna = await storage.getDesignDna();
+    const loadedSelections = await storage.getPromptStudioSelections();
+    const loadedLastPrompt = await storage.getLastPromptResult();
+
+    setDesigns(loadedDesigns);
+    if (loadedDna) setDna(loadedDna);
+    if (loadedSelections) setPromptSelections(loadedSelections);
+    if (loadedLastPrompt) setLastPromptResult(loadedLastPrompt);
+  };
+
   const selectedDesign = designs.find((d) => d.id === selectedDesignId) || null;
   const analyzedCount = designs.filter((d) => d.analysisStatus === 'analyzed').length;
 
@@ -349,6 +370,7 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onOpenUpload={() => setIsUploadOpen(true)}
+        onOpenBackup={() => setIsBackupOpen(true)}
         analyzedCount={analyzedCount}
         totalCount={designs.length}
       />
@@ -390,6 +412,7 @@ export default function App() {
             designs={designs}
             onSelectDesign={(d) => setSelectedDesignId(d.id)}
             onOpenUpload={() => setIsUploadOpen(true)}
+            onOpenBackup={() => setIsBackupOpen(true)}
             onAnalyzeDesign={handleAnalyzeDesign}
             analyzingId={analyzingId}
             onResetSamples={handleResetSamples}
@@ -429,9 +452,16 @@ export default function App() {
             <span aria-hidden="true" className="text-[var(--text-muted)]">·</span>
             <span>Personal Reference Library & Prompt Generator</span>
           </div>
-          <span className="text-[11px] text-[var(--text-muted)]">
-            {designs.length} designs ({analyzedCount} analyzed) · Client-Side IndexedDB Storage
-          </span>
+          <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)]">
+            <button
+              onClick={() => setIsBackupOpen(true)}
+              className="hover:text-[var(--text-primary)] transition-colors cursor-pointer underline underline-offset-2"
+            >
+              Data & Backup
+            </button>
+            <span aria-hidden="true">·</span>
+            <span>{designs.length} designs ({analyzedCount} analyzed) · Client-Side Storage</span>
+          </div>
         </div>
       </footer>
 
@@ -452,6 +482,16 @@ export default function App() {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onSaveDesigns={handleSaveUploadedDesigns}
+      />
+
+      {/* Modal: Local Data & Backup */}
+      <BackupModal
+        isOpen={isBackupOpen}
+        onClose={() => setIsBackupOpen(false)}
+        designs={designs}
+        dna={dna}
+        onRestored={handleRestoredBackup}
+        onNotification={showNotification}
       />
     </div>
   );

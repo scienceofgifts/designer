@@ -20,6 +20,7 @@ import {
   ChevronUp,
   CheckCircle2,
   CircleDashed,
+  Database,
 } from 'lucide-react';
 import { DesignItem, DesignSource, AnalysisStatus } from '../types';
 
@@ -27,6 +28,7 @@ interface LibraryViewProps {
   designs: DesignItem[];
   onSelectDesign: (design: DesignItem) => void;
   onOpenUpload: () => void;
+  onOpenBackup: () => void;
   onAnalyzeDesign: (designId: string) => Promise<void>;
   analyzingId: string | null;
   onResetSamples: () => void;
@@ -36,6 +38,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   designs,
   onSelectDesign,
   onOpenUpload,
+  onOpenBackup,
   onAnalyzeDesign,
   analyzingId,
   onResetSamples,
@@ -153,6 +156,14 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
           {/* Quick Header Actions */}
           <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={onOpenBackup}
+              className="px-3.5 py-2 text-xs font-medium text-[#334155] hover:text-[#0F172A] border border-[#CBD5E1] hover:border-[#94A3B8] bg-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              title="Backup library data or restore from backup file"
+            >
+              <Database className="w-3.5 h-3.5 text-[#2563EB]" />
+              <span>Data & Backup</span>
+            </button>
             <button
               onClick={onResetSamples}
               className="px-3.5 py-2 text-xs font-medium text-[#334155] hover:text-[#0F172A] border border-[#CBD5E1] hover:border-[#94A3B8] bg-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
